@@ -298,7 +298,7 @@ function undoLoad() {
 
 // ───────────── Interface ─────────────
 
-const state = { tab: 'inicio', month: currentMonth() };
+const state = { tab: 'inicio', month: currentMonth(), caixaFilter: 'tudo', recvGroup: null };
 const $ = s => document.querySelector(s);
 let toastTimer = null;
 function toast(text) {
@@ -307,12 +307,183 @@ function toast(text) {
 }
 function updateDirty() { $('#dirty').hidden = !isDirty(); }
 
+// Ícones (traço, 24×24)
+const ICONS = {
+  home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
+  swap: 'M7 4v16M7 4 3 8M7 4l4 4M17 20V4M17 20l-4-4M17 20l4-4',
+  bills: 'M9 6h11M9 12h11M9 18h11M3.5 6l1 1 2-2M3.5 12l1 1 2-2M3.5 18l1 1 2-2',
+  inbox: 'M3 13h5l1.5 3h5L16 13h5M3 13l2.5-8h13L21 13v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z',
+  cloud: 'M7 18.5a4.5 4.5 0 1 1 .9-8.9A6 6 0 0 1 19.2 10 4.3 4.3 0 0 1 18 18.5z',
+  down: 'M12 5v14M6 13l6 6 6-6',
+  up: 'M12 19V5M6 11l6-6 6 6',
+  plus: 'M12 5v14M5 12h14',
+  left: 'M15 6l-6 6 6 6',
+  right: 'M9 6l6 6-6 6',
+  check: 'M5 12.5l4.5 4.5L19 7',
+  megaphone: 'M3 11v2a1 1 0 0 0 1 1h2l6 4V6l-6 4H4a1 1 0 0 0-1 1zM16 9a3 3 0 0 1 0 6M19 6a7 7 0 0 1 0 12',
+  cpu: 'M7 7h10v10H7zM10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4',
+  card: 'M3 6.5h18v11H3zM3 10.5h18M7 14.5h3',
+  calc: 'M6 3h12v18H6zM9 7h6M9 11h.01M12 11h.01M15 11h.01M9 15h.01M12 15h.01M15 15h.01M9 18h.01M12 18h.01M15 18h.01',
+  file: 'M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6',
+  bank: 'M4 21V9.5L12 4l8 5.5V21M8 21v-7M12 21v-7M16 21v-7M3 21h18',
+  hand: 'M7 11l3-3 4 2 3-1 4 4-6 6-3-2-2 2-6-6zM3 13l4-4',
+  bag: 'M5 8h14l-1 12.5H6zM9 8V6.5a3 3 0 0 1 6 0V8',
+  dots: 'M5 12h.01M12 12h.01M19 12h.01',
+  briefcase: 'M3 8h18v11H3zM8.5 8V5.5h7V8M3 13h18',
+  trophy: 'M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7',
+  scale: 'M12 4v16M6 20h12M5 8h14M5 8l-3 6a3 3 0 0 0 6 0zM19 8l-3 6a3 3 0 0 0 6 0z',
+  calendar: 'M4 6h16v15H4zM4 10.5h16M8 3v4M16 3v4',
+  wallet: 'M3 7.5h15a3 3 0 0 1 3 3V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7.5 15 3.5v4M16.5 14h.01',
+  users: 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2.5 21a6.5 6.5 0 0 1 13 0M16 3.3a4 4 0 0 1 0 7.4M21.5 21a6.5 6.5 0 0 0-4-6',
+  alert: 'M12 9v4M12 16.5h.01M10.3 4.2 2.6 18a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z',
+  clock: 'M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z',
+  upload: 'M12 16V4M7 9l5-5 5 5M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4',
+  download: 'M12 4v12M7 11l5 5 5-5M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4',
+  undo: 'M9 14 4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3',
+  pie: 'M12 3v9h9M12 3a9 9 0 1 0 9 9',
+  edit: 'M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4',
+  trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',
+};
+function icon(name, size = 20, sw = 1.9) {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS[name] || ICONS.dots}"/></svg>`;
+}
+
+// Cor e ícone por categoria (ordem fixa, a mesma do Mac em "Para onde foi o dinheiro").
+const CAT_STYLE = {
+  'Marketing e tráfego': ['megaphone', '#E2622E'], 'Tecnologia e sistemas': ['cpu', '#115384'], 'Taxas de cartão': ['card', '#17A2A0'],
+  'Contabilidade': ['calc', '#7B61D9'], 'Custas e correspondentes': ['file', '#D9A21B'], 'OAB e impostos': ['bank', '#C94F7C'],
+  'Comissões e indicações': ['hand', '#4E9A5B'], 'Despesas gerais': ['bag', '#8A9AAB'], 'Outras despesas': ['dots', '#8A9AAB'],
+  'Honorários contratuais': ['briefcase', '#115384'], 'Honorários de êxito': ['trophy', '#C98A1E'], 'Honorários sucumbenciais': ['scale', '#2E7D5B'],
+  'Taxa de manutenção': ['calendar', '#1D6FAE'], 'Outras receitas': ['plus', '#4E9A5B'],
+};
+function catStyle(c) { return CAT_STYLE[c] || ['dots', '#8A9AAB']; }
+function catIcon(c, size = 40) {
+  const [ic, color] = catStyle(c);
+  return `<div class="ic" style="width:${size}px;height:${size}px;background:${color}1A;color:${color}">${icon(ic, Math.round(size * .5))}</div>`;
+}
+function compact(c) {
+  const v = Math.abs(c) / 100, s = c < 0 ? '−' : '';
+  if (v >= 1000) return s + 'R$ ' + (v / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' mil';
+  return money(c);
+}
+function yearTotals(year) {
+  const out = [];
+  for (let m = 1; m <= 12; m++) {
+    const ym = `${year}-${pad(m)}`;
+    const paid = live().filter(e => e.month === ym && e.status === 'pago');
+    out.push({ ym, ins: sum(paid.filter(e => e.kind === 'entrada')), outs: sum(paid.filter(e => e.kind === 'saida')) });
+  }
+  return out;
+}
+function categoryTotals(month, kind) {
+  const map = new Map();
+  for (const e of live()) if (e.month === month && e.kind === kind && e.status === 'pago') map.set(e.category, (map.get(e.category) || 0) + eff(e));
+  return [...map.entries()].sort((a, b) => b[1] - a[1]);
+}
+
+// ───────── Gráficos (SVG) ─────────
+
+/** Entradas × saídas dos 12 meses, no herói escuro. Tocar num mês abre o mês. */
+function yearChart(month) {
+  const data = yearTotals(month.slice(0, 4));
+  const max = Math.max(1, ...data.map(d => Math.max(d.ins, d.outs)));
+  const W = 340, H = 96, top = 6, step = W / 12, bw = 7, gap = 2;
+  const letters = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+  const bar = (x, v, color, op) => {
+    if (v <= 0) return `<rect x="${x}" y="${top + H - 2}" width="${bw}" height="2" rx="1" fill="${color}" opacity="${op * .5}"/>`;
+    const h = Math.max(4, (v / max) * H);
+    return `<path d="M${x},${top + H} V${top + H - h + 3} a3,3 0 0 1 3,-3 h${bw - 6} a3,3 0 0 1 3,3 V${top + H} z" fill="${color}" opacity="${op}"/>`;
+  };
+  let s = '';
+  data.forEach((d, i) => {
+    const cx = i * step + step / 2, on = d.ym === month, op = on ? 1 : .42;
+    if (on) s += `<rect x="${i * step + 2}" y="0" width="${step - 4}" height="${top + H + 22}" rx="9" fill="#fff" opacity=".07"/>`;
+    s += bar(cx - bw - gap / 2, d.ins, '#8CC4EE', op) + bar(cx + gap / 2, d.outs, '#F59A6E', op);
+    s += `<text x="${cx}" y="${top + H + 15}" text-anchor="middle" font-size="10" font-weight="${on ? 700 : 500}" fill="#fff" opacity="${on ? 1 : .5}">${letters[i]}</text>`;
+    s += `<rect x="${i * step}" y="0" width="${step}" height="${top + H + 22}" fill="transparent" data-action="pick-month" data-m="${d.ym}"/>`;
+  });
+  return `<div class="year-chart"><svg viewBox="0 0 ${W} ${top + H + 22}" role="img" aria-label="Entradas e saídas por mês">${s}</svg>
+    <div class="chart-legend"><span><i style="background:#8CC4EE"></i>Entradas</span><span><i style="background:#F59A6E"></i>Saídas</span><span>toque num mês para abrir</span></div></div>`;
+}
+
+/** Rosca com segmentos separados por um respiro de 2px. */
+function donut(parts, size = 128, stroke = 16, centerTop = '', centerBottom = '') {
+  const r = (size - stroke) / 2, c = 2 * Math.PI * r, total = parts.reduce((a, p) => a + Math.max(0, p.value), 0);
+  let off = 0, segs = `<circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="#EEF2F6" stroke-width="${stroke}"/>`;
+  if (total > 0) for (const p of parts) {
+    if (p.value <= 0) continue;
+    const len = (p.value / total) * c, vis = Math.max(0, len - 3);
+    segs += `<circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${p.color}" stroke-width="${stroke}" stroke-linecap="butt"
+      stroke-dasharray="${vis} ${c - vis}" stroke-dashoffset="${-off}"/>`;
+    off += len;
+  }
+  return `<div class="donut" style="width:${size}px;height:${size}px"><svg viewBox="0 0 ${size} ${size}" style="width:${size}px;height:${size}px">${segs}</svg>
+    <div class="dc"><div><b>${centerTop}</b><small>${centerBottom}</small></div></div></div>`;
+}
+
+function ring(frac, color, size = 64, stroke = 8) {
+  const r = (size - stroke) / 2, c = 2 * Math.PI * r, v = Math.max(0, Math.min(1, frac)) * c;
+  return `<svg viewBox="0 0 ${size} ${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="#EEF2F6" stroke-width="${stroke}"/>
+    <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${v} ${c}"/></svg>`;
+}
+
+// ───────── Herói e abas ─────────
+
+const TABS = [['inicio', 'home', 'Início'], ['caixa', 'swap', 'Caixa'], ['contas', 'bills', 'Contas'], ['receber', 'inbox', 'A receber'], ['icloud', 'cloud', 'iCloud']];
+
+function monthNav() {
+  const m = state.month;
+  return `<div class="month-nav">
+    <button class="mn-btn" data-action="prev-month" aria-label="Mês anterior">${icon('left', 18, 2.2)}</button>
+    <button class="mn-label" data-action="this-month">${esc(monthName(m))} ${m.slice(0, 4)}<small>${m === currentMonth() ? 'este mês' : 'toque para voltar a hoje'}</small></button>
+    <button class="mn-btn" data-action="next-month" aria-label="Próximo mês">${icon('right', 18, 2.2)}</button></div>`;
+}
+function heroBig(c) {
+  const s = money(c), i = s.lastIndexOf(',');
+  return `<div class="hero-big num ${c < 0 ? 'neg' : ''}">${esc(s.slice(0, i))}<small>${esc(s.slice(i))}</small></div>`;
+}
+function bigMoney2(c) { const s = money(c), i = s.lastIndexOf(','); return `${esc(s.slice(0, i))}<small>${esc(s.slice(i))}</small>`; }
+function glass(kind, ic, label, value) {
+  return `<div class="glass"><div class="gh"><div class="gi ${kind}">${icon(ic, 15, 2.4)}</div><div class="gl">${label}</div></div><div class="gv num">${value}</div></div>`;
+}
+
+function heroHTML() {
+  if (!hasData() && state.tab !== 'icloud') return `<div class="hero-center"><div class="hero-label">Bem-vindo</div><div class="hero-sub">Carregue o arquivo do Mac para começar</div></div>`;
+  const m = state.month, ind = hasData() ? indicators(m) : null;
+  switch (state.tab) {
+    case 'inicio': return `${monthNav()}<div class="hero-center"><div class="hero-label">Saldo do mês</div>${heroBig(ind.saldo)}</div>
+      <div class="glass-row">${glass('in', 'down', 'Entrou', money(ind.entradas))}${glass('out', 'up', 'Saiu', money(ind.saidas))}</div>${yearChart(m)}`;
+    case 'caixa': return `${monthNav()}<div class="glass-row">${glass('in', 'down', 'Entrou', money(ind.entradas))}${glass('out', 'up', 'Saiu', money(ind.saidas))}</div>
+      <div class="glass-row" style="grid-template-columns:1fr">${glass(ind.saldo < 0 ? 'bad' : 'ok', 'wallet', 'Saldo do mês · acumulado ' + compact(ind.acumulado), money(ind.saldo))}</div>`;
+    case 'contas': {
+      const outs = ledger(m, 'saida'), open = outs.filter(e => e.status === 'pendente');
+      return `${monthNav()}<div class="hero-center"><div class="hero-label">Em aberto</div>${heroBig(sum(open, e => e.amount_cents))}
+        <div class="hero-sub">${open.length ? open.length + ' conta(s) para pagar' : 'Tudo pago neste mês'}</div></div>
+        <div class="glass-row">${glass('out', 'up', 'Pagas no mês', money(sum(outs.filter(e => e.status === 'pago'))))}${glass(open.some(e => displayStatus(e) === 'atrasado') ? 'bad' : 'ok', 'clock', 'Atrasadas', String(open.filter(e => displayStatus(e) === 'atrasado').length))}</div>`;
+    }
+    case 'receber': {
+      const pend = pendingIn(), late = pend.filter(e => displayStatus(e) === 'atrasado');
+      const mes = pend.filter(e => (e.due_date || '').startsWith(currentMonth()));
+      return `<div class="hero-center" style="margin-top:4px"><div class="hero-label">Total a receber</div>${heroBig(sum(pend, e => e.amount_cents))}
+        <div class="hero-sub">${pend.length} valores pendentes</div></div>
+        <div class="glass-row">${glass(late.length ? 'bad' : 'ok', 'alert', 'Em atraso', money(sum(late, e => e.amount_cents)))}${glass('in', 'calendar', 'Vence no mês', money(sum(mes, e => e.amount_cents)))}</div>`;
+    }
+    case 'icloud': {
+      const dirty = isDirty();
+      return `<div class="hero-center" style="margin-top:4px"><div class="welcome" style="padding:6px 0 0">
+        <div class="bigicon" style="background:rgba(255,255,255,.1);color:${dirty ? '#F59A6E' : '#7FD3A8'}">${icon('cloud', 38, 1.8)}</div></div>
+        <div class="hero-label">${dirty ? 'Alterações não salvas' : hasData() ? 'Tudo salvo' : 'Sem dados ainda'}</div>
+        <div class="hero-sub">${esc(db.meta.when || 'Ainda não houve troca com o Mac')}</div></div>`;
+    }
+  }
+  return '';
+}
+
 function render() {
-  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === state.tab));
-  const showMonth = ['inicio', 'caixa', 'contas'].includes(state.tab) && hasData();
-  $('#monthbar').hidden = !showMonth;
-  $('#month-label').innerHTML = esc(monthLabel(state.month)) + (state.month === currentMonth() ? '<small>este mês</small>' : '');
+  $('#tabs').innerHTML = TABS.map(([id, ic, label]) => `<button class="tab ${state.tab === id ? 'on' : ''}" data-tab="${id}">${icon(ic, 22, 1.9)}${label}</button>`).join('');
+  $('#fab').innerHTML = icon('plus', 26, 2.4);
   $('#fab').hidden = !(hasData() && ['inicio', 'caixa', 'contas'].includes(state.tab));
+  $('#hero').innerHTML = heroHTML();
   updateDirty();
   const v = $('#view');
   if (!hasData() && state.tab !== 'icloud') { v.innerHTML = emptyView(); return; }
@@ -320,99 +491,125 @@ function render() {
 }
 
 function emptyView() {
-  return `<div class="card">
-    <div class="title">Bem-vindo</div>
-    <p class="note">Este app ainda não tem dados. Para começar, envie o financeiro do Mac e carregue aqui:</p>
-    <ol class="steps">
+  return `<div class="card welcome">
+    <div class="bigicon">${icon('download', 36, 1.8)}</div>
+    <div class="title">Traga o financeiro do Mac</div>
+    <ol class="steps" style="text-align:left;margin-top:16px">
       <li>No Mac, abra o S&amp;T LAW e clique em <b>iPhone › Enviar para o iPhone</b>.</li>
-      <li>Aqui, toque em <b>Carregar do iCloud Drive</b> e escolha <b>iCloud Drive › S&amp;T LAW › stlaw-financeiro.json</b>.</li>
+      <li>Aqui, toque em <b>Carregar do iCloud Drive</b> e escolha <b>S&amp;T LAW › stlaw-financeiro.json</b>.</li>
     </ol>
-    <div class="stack"><button class="btn" data-action="pick-file">Carregar do iCloud Drive</button></div>
+    <div class="stack"><button class="btn" data-action="pick-file">${icon('download', 20, 2.2)}Carregar do iCloud Drive</button></div>
   </div>`;
 }
 
-function recvRow(e) {
+// ───────── Linhas ─────────
+
+function recvRow(e, label = 'Recebi') {
   const late = displayStatus(e) === 'atrasado';
   const n = e.installment_total > 1 ? `<span class="badge">${e.installment_number}/${e.installment_total}</span>` : '';
-  return `<div class="row">
-    <div class="main"><div class="t"><span class="nm">${esc(shortTitle(e))}</span>${n}</div>
-      <div class="s ${late ? 'red' : ''}">${late ? 'atrasado · venceu ' : 'vence '}${br(e.due_date)}</div></div>
-    <div class="amt">${money(e.amount_cents)}</div>
-    <button class="btn pill green" data-action="receive" data-id="${e.id}">Recebi</button>
+  return `<div class="row">${catIcon(e.category)}
+    <div class="main"><div class="t"><span class="nm">${esc(e.client_name || shortTitle(e))}</span>${n}</div>
+      <div class="s ${late ? 'red' : ''}">${late ? 'atrasado · venceu ' : 'vence '}${e.due_date ? brShort(e.due_date) : '—'}</div></div>
+    <div class="rc"><div class="amt num">${money(e.amount_cents)}</div>
+      <button class="pill sm ${label === 'Recebi' ? 'green' : 'soft'}" data-action="receive" data-id="${e.id}">${label === 'Recebi' ? icon('check', 14, 2.8) : ''}${label}</button></div>
   </div>`;
 }
 function entryRow(e) {
-  const kind = e.kind === 'entrada' ? 'in' : 'out';
   const n = e.installment_total > 1 ? `<span class="badge">${e.installment_number}/${e.installment_total}</span>` : '';
   const office = e.kind === 'entrada' && e.split_mode === 'escritorio' ? '<span class="badge esc">escritório</span>' : '';
-  const date = e.status === 'pendente' ? 'vence ' + brShort(e.due_date) : (e.day_known ? brShort(e.paid_date || e.entry_date) : 'no mês');
-  return `<button class="row" data-action="edit" data-id="${e.id}">
-    <div class="main"><div class="t"><span class="nm">${esc(shortTitle(e))}</span>${n}${office}</div><div class="s">${esc(e.category)} · ${date}</div></div>
-    <div class="amt ${kind}">${e.kind === 'entrada' ? '+' : '−'} ${money(eff(e))}</div>
+  return `<button class="row" data-action="edit" data-id="${e.id}">${catIcon(e.category)}
+    <div class="main"><div class="t"><span class="nm">${esc(shortTitle(e))}</span>${n}${office}</div><div class="s">${esc(e.category)}</div></div>
+    <div class="amt ${e.kind === 'entrada' ? 'in' : 'out'}">${e.kind === 'entrada' ? '+' : '−'} ${money(eff(e))}</div>
   </button>`;
 }
+function dayKey(e) { return e.status === 'pago' && e.day_known ? (e.paid_date || e.entry_date || '') : ''; }
+function dayLabel(iso) {
+  if (!iso) return 'Sem dia informado';
+  if (iso === today()) return 'Hoje';
+  const [y, m, d] = iso.split('-').map(Number);
+  const wd = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'][new Date(y, m - 1, d).getDay()];
+  return `${d} de ${MONTHS[m - 1]} · ${wd}`;
+}
+function groupedByDay(list) {
+  const groups = new Map();
+  for (const e of list.sort((a, b) => dayKey(b).localeCompare(dayKey(a)))) {
+    const k = dayKey(e); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(e);
+  }
+  let html = '';
+  for (const [k, l] of groups) html += `<div class="day-head">${esc(dayLabel(k))}</div>` + l.map(entryRow).join('');
+  return html;
+}
+
+// ───────── Telas ─────────
 
 function homeView() {
   const m = state.month, name = monthName(m), prev = monthName(addMonths(m, -1)).toLowerCase();
-  const ind = indicators(m), d = division(m), c = officeCash(m), rec = toReceive(m);
-  const shareRows = PARTNERS.map(p => `<div class="share"><div class="avatar azul">${esc(p[0])}</div>
-      <div class="who"><b>${esc(p)}</b><small>sócio · 1/3 limpo</small></div><div class="val">${money(d.socio)}</div></div>`).join('');
+  const d = division(m), c = officeCash(m), rec = toReceive(m), cats = categoryTotals(m, 'saida');
+  const colors = ['#115384', '#5B9BD0', d.saldoEscritorio < 0 ? '#B3343D' : '#2E7D5B'];
+  const people = [...PARTNERS.map((p, i) => ({ name: p, role: 'sócio · 1/3 limpo', value: d.socio, color: colors[i] })),
+    { name: 'Escritório', role: 'resultado do mês · paga as contas', value: d.saldoEscritorio, color: colors[2] }];
+  const catTotal = cats.reduce((a, [, v]) => a + v, 0);
   return `
   <div class="card">
-    <div class="card-head"><div class="title">Saldo do mês <i>${name}</i></div></div>
-    <div class="big ${ind.saldo < 0 ? 'vermelho' : ''}">${bigMoney(ind.saldo)}</div>
-    <div class="split2">
-      <div class="mini"><div class="label">Entrou</div><div class="v azul">${money(ind.entradas)}</div></div>
-      <div class="mini"><div class="label">Saiu</div><div class="v laranja">${money(ind.saidas)}</div></div>
+    <div class="card-head"><div class="ci azul">${icon('users')}</div><div class="title">Divisão do resultado<i>${name}</i></div></div>
+    <div class="division">
+      ${donut(people.map(p => ({ value: p.value, color: p.color })), 156, 18, compact(d.dividido), 'para dividir')}
+      <div class="legend">${people.map(p => `<div class="lg"><span class="sw" style="background:${p.color}">${esc(p.name[0])}</span>
+        <div class="who"><b>${esc(p.name)}</b><small>${p.role}</small></div>
+        <div class="v num" ${p.value < 0 ? 'style="color:var(--perigo)"' : ''}>${money(p.value)}</div></div>`).join('')}</div>
     </div>
-  </div>
-  <div class="card">
-    <div class="card-head"><div class="title">Divisão do resultado <i>${name}</i></div></div>
-    <div class="big">${bigMoney(d.dividido)}</div>
-    <div class="note">entradas para dividir em 3, sem descontar as contas</div>
-    ${shareRows}
-    <div class="share"><div class="avatar ${d.saldoEscritorio < 0 ? 'vermelho' : 'verde'}">E</div>
-      <div class="who"><b>Escritório</b><small>resultado do mês · paga as contas</small></div><div class="val">${money(d.saldoEscritorio)}</div></div>
     <div class="calc">
+      <div class="r"><span>Entradas para dividir</span><span>${money(d.dividido)}</span></div>
+      <div class="r"><span>Cada sócio (1/3, limpo)</span><span>${money(d.socio)}</span></div>
       <div class="r"><span>1/3 do escritório</span><span>${money(d.tercoEscritorio)}</span></div>
-      ${d.integral ? `<div class="r"><span>+ entradas integrais do escritório</span><span>${money(d.integral)}</span></div>` : ''}
+      ${d.integral ? `<div class="r"><span>+ integrais do escritório</span><span>${money(d.integral)}</span></div>` : ''}
       <div class="r"><span>− contas pagas no mês</span><span>${money(-d.contas)}</span></div>
       <div class="r b ${d.saldoEscritorio < 0 ? 'neg' : ''}"><span>= resultado do escritório</span><span>${money(d.saldoEscritorio)}</span></div>
     </div>
   </div>
-  <div class="card">
-    <div class="card-head"><div class="title">Caixa do escritório <i>${name}</i></div></div>
-    <div class="big ${c.closing < 0 ? 'vermelho' : 'verde'}">${bigMoney(c.closing)}</div>
-    <div class="note">${c.opening === null ? `resultado do mês — falta lançar o saldo de ${prev}` : `o que fica no caixa no fim de ${name.toLowerCase()}`}</div>
-    <div class="calc">
-      <div class="r"><span>Saldo que sobrou de ${prev}</span><span>${c.opening === null ? '<b class="note red">não lançado</b>' : money(c.opening)}</span></div>
-      <div class="r"><span>+ resultado do escritório</span><span>${money(d.saldoEscritorio)}</span></div>
-      <div class="r b"><span>= em caixa</span><span>${money(c.closing)}</span></div>
+
+  <div class="cash-card ${c.closing < 0 ? 'neg' : ''}">
+    <div class="card-head"><div class="ci">${icon('wallet')}</div><div class="title">Caixa do escritório<i>fim de ${name.toLowerCase()}</i></div></div>
+    <div class="big num">${bigMoney2(c.closing)}</div>
+    <div class="cash-flow">
+      <div class="cf"><small>Sobrou de ${prev}</small><b class="num">${c.opening === null ? 'não lançado' : money(c.opening)}</b></div>
+      <div class="op">+</div>
+      <div class="cf"><small>Resultado do mês</small><b class="num">${money(d.saldoEscritorio)}</b></div>
     </div>
-    <div class="stack"><button class="btn sec" data-action="opening">${c.opening === null ? 'Lançar' : 'Alterar'} saldo de ${prev}</button></div>
+    <button class="btn-ghost-light" data-action="opening">${icon('edit', 17, 2.2)}${c.opening === null ? 'Lançar' : 'Alterar'} saldo de ${prev}</button>
   </div>
+
   <div class="card flush">
-    <div class="card-head"><div class="title">A receber <i>${name}</i></div><span class="chip">${money(sum(rec, e => e.amount_cents))}</span></div>
-    ${rec.length ? rec.map(recvRow).join('') : '<div class="empty">Nada pendente para este mês.</div>'}
+    <div class="card-head"><div class="ci verde">${icon('inbox')}</div><div class="title">A receber<i>${name}</i></div><span class="chip">${money(sum(rec, e => e.amount_cents))}</span></div>
+    ${rec.length ? rec.map(e => recvRow(e)).join('') : '<div class="empty">Nada pendente para este mês.</div>'}
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="ci laranja">${icon('pie')}</div><div class="title">Para onde foi o dinheiro<i>${money(catTotal)} em ${name.toLowerCase()}</i></div></div>
+    ${cats.length ? cats.map(([cat, v]) => {
+      const [, color] = catStyle(cat), pct = catTotal ? Math.round(100 * v / catTotal) : 0;
+      return `<div class="cat">${catIcon(cat, 36)}<div class="main"><div class="top"><b>${esc(cat)}</b><span>${money(v)}</span></div>
+        <div class="barline"><div class="bar"><span style="width:${Math.max(3, pct)}%;background:${color}"></span></div><div class="pct">${pct}%</div></div></div></div>`;
+    }).join('') : '<div class="empty">Nenhuma saída paga neste mês.</div>'}
   </div>`;
 }
 
 function cashView() {
-  const m = state.month, ins = ledger(m, 'entrada').filter(e => e.status === 'pago'), outs = ledger(m, 'saida').filter(e => e.status === 'pago');
+  const m = state.month, f = state.caixaFilter;
+  const ins = ledger(m, 'entrada').filter(e => e.status === 'pago'), outs = ledger(m, 'saida').filter(e => e.status === 'pago');
   const rec = toReceive(m);
-  const byDate = (a, b) => (b.paid_date || b.entry_date || '').localeCompare(a.paid_date || a.entry_date || '');
+  const list = f === 'entradas' ? ins : f === 'saidas' ? outs : [...ins, ...outs];
   return `
   ${rec.length ? `<div class="card flush">
-    <div class="card-head"><div class="title">A receber</div><span class="chip">${money(sum(rec, e => e.amount_cents))}</span></div>
-    <div class="empty" style="padding-top:0;padding-bottom:8px">Ainda não entrou no caixa. Ao receber, toque em “Recebi” e escolha a divisão.</div>
-    ${rec.map(recvRow).join('')}</div>` : ''}
-  <div class="card flush">
-    <div class="card-head"><div class="title">Entradas</div><span class="chip">${money(sum(ins))}</span></div>
-    ${ins.length ? ins.sort(byDate).map(entryRow).join('') : '<div class="empty">Nenhuma entrada neste mês.</div>'}
+    <div class="card-head"><div class="ci verde">${icon('inbox')}</div><div class="title">A receber<i>ainda fora do caixa</i></div><span class="chip">${money(sum(rec, e => e.amount_cents))}</span></div>
+    ${rec.map(e => recvRow(e)).join('')}</div>` : ''}
+  <div class="seg" id="caixa-filter">
+    <button data-filter="tudo" class="${f === 'tudo' ? 'on' : ''}">Tudo</button>
+    <button data-filter="entradas" class="${f === 'entradas' ? 'on' : ''}">Entradas</button>
+    <button data-filter="saidas" class="${f === 'saidas' ? 'on' : ''}">Saídas</button>
   </div>
-  <div class="card flush">
-    <div class="card-head"><div class="title">Saídas</div><span class="chip saida">${money(sum(outs))}</span></div>
-    ${outs.length ? outs.sort(byDate).map(entryRow).join('') : '<div class="empty">Nenhuma saída neste mês.</div>'}
+  <div class="card flush" style="padding-bottom:6px">
+    ${list.length ? groupedByDay(list) : '<div class="empty" style="padding-top:18px">Nenhum lançamento neste mês.</div>'}
   </div>`;
 }
 
@@ -420,27 +617,24 @@ function billsView() {
   const m = state.month, outs = ledger(m, 'saida');
   const open = outs.filter(e => e.status === 'pendente').sort((a, b) => (a.due_date || '').localeCompare(b.due_date || ''));
   const paid = outs.filter(e => e.status === 'pago');
+  const total = outs.length, frac = total ? paid.length / total : 1;
   const openRow = e => {
     const late = displayStatus(e) === 'atrasado';
     return `<div class="row">
-      <button class="dot ${late ? 'late' : ''}" data-action="pay" data-id="${e.id}" aria-label="Marcar como paga"></button>
-      <button class="main" data-action="edit" data-id="${e.id}" style="text-align:left"><div class="t">${esc(shortTitle(e))}</div>
+      <button class="check ${late ? 'late' : ''}" data-action="pay" data-id="${e.id}" aria-label="Marcar como paga">${icon('check', 15, 3)}</button>
+      <button class="main" data-action="edit" data-id="${e.id}" style="text-align:left"><div class="t"><span class="nm">${esc(shortTitle(e))}</span></div>
         <div class="s ${late ? 'red' : ''}">${late ? 'atrasada · venceu ' : 'vence '}${br(e.due_date)}</div></button>
-      <div class="amt">${money(e.amount_cents)}</div></div>`;
+      <div class="amt out">${money(e.amount_cents)}</div></div>`;
   };
   return `
-  <div class="kpis">
-    <div class="kpi"><div class="label">Em aberto</div><div class="v ${open.length ? 'red' : 'verde'}">${money(sum(open, e => e.amount_cents))}</div></div>
-    <div class="kpi"><div class="label">Pagas no mês</div><div class="v">${money(sum(paid))}</div></div>
+  <div class="card">
+    <div class="ring-progress">${ring(frac, '#2E7D5B')}
+      <div><div class="title">${paid.length} de ${total} pagas</div><div class="note">${open.length ? 'Toque no círculo quando pagar.' : 'Nenhuma conta em aberto neste mês.'}</div></div></div>
   </div>
-  <div class="card flush">
-    <div class="card-head"><div class="title">Contas a pagar</div><span class="chip saida">${open.length}</span></div>
-    ${open.length ? open.map(openRow).join('') : '<div class="empty">Nenhuma conta em aberto neste mês. Toque em + para lançar.</div>'}
-  </div>
-  <div class="card flush">
-    <div class="card-head"><div class="title">Pagas</div><span class="chip saida">${money(sum(paid))}</span></div>
-    ${paid.length ? paid.map(entryRow).join('') : '<div class="empty">Nenhuma conta paga neste mês.</div>'}
-  </div>`;
+  ${open.length ? `<div class="card flush"><div class="card-head"><div class="ci laranja">${icon('clock')}</div><div class="title">Para pagar</div><span class="chip laranja">${money(sum(open, e => e.amount_cents))}</span></div>
+    ${open.map(openRow).join('')}</div>` : ''}
+  <div class="card flush" style="padding-bottom:6px"><div class="card-head"><div class="ci verde">${icon('check')}</div><div class="title">Pagas</div><span class="chip verde">${money(sum(paid))}</span></div>
+    ${paid.length ? paid.sort((a, b) => dayKey(b).localeCompare(dayKey(a))).map(entryRow).join('') : '<div class="empty">Nenhuma conta paga neste mês.</div>'}</div>`;
 }
 
 function receivablesView() {
@@ -451,75 +645,74 @@ function receivablesView() {
   const months = [...new Set(maint.map(e => (e.due_date || 'sem data').slice(0, 7)))].sort();
   const sucumb = pend.filter(e => e.category === SUCUMB);
   const others = pend.filter(e => e.category !== MANUT && e.category !== SUCUMB && !parcelIds.has(e.plan_id));
-  const late = pend.filter(e => displayStatus(e) === 'atrasado');
-  const thisMonth = pend.filter(e => (e.due_date || '').startsWith(currentMonth()));
-  const simpleRow = (e, sub) => `<div class="row"><div class="main"><div class="t">${esc(e.client_name || shortTitle(e))}</div>
-      <div class="s ${displayStatus(e) === 'atrasado' ? 'red' : ''}">${esc(sub)}</div></div>
-      <div class="amt">${money(e.amount_cents)}</div>
-      <button class="btn pill sec" data-action="receive" data-id="${e.id}">Receber</button></div>`;
-  const maintCards = months.map(ym => {
-    const list = maint.filter(e => (e.due_date || 'sem data').slice(0, 7) === ym)
-      .sort((a, b) => ((a.due_date || '') + (a.client_name || '')).localeCompare((b.due_date || '') + (b.client_name || '')));
-    return `<div class="card flush"><div class="card-head"><div class="title">Taxas de manutenção <i>${ym === 'sem data' ? 'sem vencimento' : monthLabel(ym)}</i></div>
-      <span class="chip">${money(sum(list, e => e.amount_cents))}</span></div>
-      <div class="empty" style="padding-top:0;padding-bottom:8px">${list.length} cliente(s)</div>
-      ${list.map(e => simpleRow(e, 'vence ' + br(e.due_date))).join('')}</div>`;
-  }).join('');
   const plans = parcelPlans.map(p => {
     const list = planEntries(p.id), paid = list.filter(e => e.status === 'pago'), open = list.filter(e => e.status === 'pendente');
     return { p, list, paid, open, remaining: sum(open, e => e.amount_cents), next: open[0], overdue: open.filter(e => displayStatus(e) === 'atrasado').length };
   }).filter(x => x.remaining > 0);
-  const planRows = plans.map(x => `<div class="row" style="flex-wrap:wrap">
-      <div class="main"><div class="t">${esc(x.p.client_name || x.p.description)}</div>
-        <div class="s ${x.overdue ? 'red' : ''}">${x.paid.length} de ${x.list.length} pagas${x.next && x.next.due_date ? ' · próxima ' + br(x.next.due_date) : ''}</div></div>
-      <div class="amt">${money(x.remaining)}</div>
-      ${x.next ? `<button class="btn pill sec" data-action="receive" data-id="${x.next.id}">Receber</button>` : ''}
-      <div class="progress" style="flex-basis:100%"><span style="width:${Math.round(100 * x.paid.length / Math.max(1, x.list.length))}%"></span></div>
-    </div>`).join('');
+
+  const groups = [
+    ...months.map(ym => ({ id: 'm' + ym, icon: 'calendar', color: '#1D6FAE', title: 'Manutenção · ' + (ym === 'sem data' ? 'sem data' : monthName(ym).slice(0, 3).toLowerCase() + '/' + ym.slice(2, 4)),
+      head: 'Taxas de manutenção', headSub: ym === 'sem data' ? 'sem vencimento' : monthLabel(ym),
+      list: maint.filter(e => (e.due_date || 'sem data').slice(0, 7) === ym), sub: n => `${n} cliente(s)` })),
+    { id: 'sucumb', icon: 'scale', color: '#2E7D5B', title: 'Sucumbências', list: sucumb, sub: n => `${n} estimativa(s)` },
+    { id: 'parcel', icon: 'briefcase', color: '#115384', title: 'Parcelamentos', list: plans.flatMap(x => x.open), sub: () => `${plans.length} cliente(s)` },
+    ...(others.length ? [{ id: 'outros', icon: 'dots', color: '#8A9AAB', title: 'Outros', list: others, sub: n => `${n} valor(es)` }] : []),
+  ];
+  const sel = groups.find(g => g.id === state.recvGroup) || groups[0];
+  const cards = groups.map(g => `<button class="gcard ${g === sel ? 'on' : ''}" data-action="recv-group" data-g="${g.id}">
+      <div class="ic" style="width:34px;height:34px;border-radius:11px;background:${g.color}1A;color:${g.color}">${icon(g.icon, 18)}</div>
+      <div class="gt">${esc(g.title)}</div><div class="gv num">${money(sum(g.list, e => e.amount_cents))}</div><div class="gs">${g.sub(g.list.length)}</div></button>`).join('');
+
+  let detail = '';
+  if (sel.id === 'parcel') {
+    detail = plans.map(x => {
+      const pct = Math.round(100 * x.paid.length / Math.max(1, x.list.length));
+      return `<div class="row" style="flex-wrap:wrap">${catIcon(x.p.category)}
+        <div class="main"><div class="t"><span class="nm">${esc(x.p.client_name || x.p.description)}</span></div>
+          <div class="s ${x.overdue ? 'red' : ''}">${x.paid.length} de ${x.list.length} pagas${x.next && x.next.due_date ? ' · próxima ' + br(x.next.due_date) : ''}</div></div>
+        <div class="amt">${money(x.remaining)}</div>
+        <div style="flex-basis:100%;padding-left:52px;display:flex;align-items:center;gap:10px">
+          <div class="bar" style="flex:1;margin:0"><span style="width:${Math.max(3, pct)}%;background:#115384"></span></div>
+          ${x.next ? `<button class="pill soft" data-action="receive" data-id="${x.next.id}">Receber parcela</button>` : ''}</div>
+      </div>`;
+    }).join('') || '<div class="empty">Nenhum parcelamento em aberto.</div>';
+  } else {
+    const list = [...sel.list].sort((a, b) => ((a.due_date || '') + (a.client_name || '')).localeCompare((b.due_date || '') + (b.client_name || '')));
+    detail = list.map(e => recvRow(e, 'Receber')).join('') || '<div class="empty">Nada pendente aqui.</div>';
+  }
   return `
-  <div class="kpis">
-    <div class="kpi"><div class="label">Total a receber</div><div class="v azul">${money(sum(pend, e => e.amount_cents))}</div></div>
-    <div class="kpi"><div class="label">Em atraso</div><div class="v ${late.length ? 'red' : 'verde'}">${money(sum(late, e => e.amount_cents))}</div></div>
-    <div class="kpi"><div class="label">Vence em ${monthName(currentMonth()).toLowerCase()}</div><div class="v">${money(sum(thisMonth, e => e.amount_cents))}</div></div>
-    <div class="kpi"><div class="label">Sucumbências</div><div class="v">${money(sum(sucumb, e => e.amount_cents))}</div></div>
-  </div>
-  ${maintCards}
-  <div class="card flush"><div class="card-head"><div class="title">Sucumbências esperadas</div><span class="chip">${money(sum(sucumb, e => e.amount_cents))}</span></div>
-    <div class="empty" style="padding-top:0;padding-bottom:8px">Valores estimados e sem data.</div>
-    ${sucumb.map(e => simpleRow(e, e.notes || 'estimativa')).join('') || '<div class="empty">Nenhuma sucumbência pendente.</div>'}</div>
-  <div class="card flush"><div class="card-head"><div class="title">Parcelamento de honorários iniciais</div><span class="chip">${money(sum(plans, x => x.remaining))}</span></div>
-    ${planRows || '<div class="empty">Nenhum parcelamento em aberto.</div>'}</div>
-  ${others.length ? `<div class="card flush"><div class="card-head"><div class="title">Outros a receber</div><span class="chip">${money(sum(others, e => e.amount_cents))}</span></div>
-    ${others.map(e => simpleRow(e, (e.due_date ? 'vence ' + br(e.due_date) + ' · ' : '') + e.category)).join('')}</div>` : ''}`;
+  <div class="group-grid">${cards}</div>
+  <div class="card flush" style="padding-bottom:6px">
+    <div class="card-head"><div class="ci" style="background:${sel.color}1A;color:${sel.color}">${icon(sel.icon)}</div>
+      <div class="title">${esc(sel.head || sel.title)}<i>${esc(sel.headSub || money(sum(sel.list, e => e.amount_cents)))}</i></div></div>
+    ${sel.id === 'sucumb' ? '<div class="empty" style="padding-bottom:6px">Valores estimados e sem data: entram quando o processo termina.</div>' : ''}
+    ${detail}
+  </div>`;
 }
 
 function syncView() {
-  const dirty = isDirty(), prev = readJSON(PREV);
+  const prev = readJSON(PREV);
   return `
+  <button class="choice" data-action="save-icloud" ${hasData() ? '' : 'disabled'}>
+    <div class="ic" style="background:rgba(17,83,132,.09);color:#115384">${icon('upload', 22)}</div>
+    <div><b>Salvar no iCloud Drive</b><small>Depois de atualizar aqui · o Mac puxa ao abrir</small></div></button>
+  <button class="choice" data-action="pick-file">
+    <div class="ic" style="background:rgba(46,125,91,.10);color:#2E7D5B">${icon('download', 22)}</div>
+    <div><b>Carregar do iCloud Drive</b><small>Depois de atualizar no Mac</small></div></button>
   <div class="card">
-    <div class="title">iCloud Drive</div>
-    <p class="note">A troca com o Mac é por um arquivo na pasta <b>iCloud Drive › S&amp;T LAW</b>. Nada sai daqui sem você salvar.</p>
-    <div class="status-line"><span class="led ${dirty ? 'warn' : ''}"></span>${dirty ? 'Há alterações neste iPhone ainda não salvas no iCloud' : (hasData() ? 'Tudo salvo no iCloud' : 'Sem dados neste iPhone')}</div>
-    <div class="note">${esc(db.meta.when || 'Ainda não houve troca com o Mac.')}</div>
-    <div class="stack">
-      <button class="btn" data-action="save-icloud" ${hasData() ? '' : 'disabled'}>Salvar no iCloud Drive</button>
-      <button class="btn sec" data-action="pick-file">Carregar do iCloud Drive</button>
-    </div>
-  </div>
-  <div class="card">
-    <div class="title">Como usar</div>
+    <div class="card-head"><div class="ci azul">${icon('cloud')}</div><div class="title">Como funciona</div></div>
     <ol class="steps">
-      <li><b>Atualizou no iPhone?</b> Toque em <b>Salvar no iCloud Drive</b> › <b>Salvar em Arquivos</b> › iCloud Drive › <b>S&amp;T LAW</b> › Salvar (substituir). Ao abrir o app no Mac, ele puxa sozinho.</li>
-      <li><b>Atualizou no Mac?</b> No Mac clique em <b>iPhone › Enviar para o iPhone</b>. Aqui, toque em <b>Carregar do iCloud Drive</b> e escolha <b>stlaw-financeiro.json</b>.</li>
-      <li>Use um aparelho por vez: salve antes de trocar de aparelho.</li>
+      <li><b>Atualizou no iPhone?</b> Salvar no iCloud Drive › <b>Salvar em Arquivos</b> › iCloud Drive › <b>S&amp;T LAW</b> › Salvar (substituir).</li>
+      <li><b>Atualizou no Mac?</b> No Mac: <b>iPhone › Enviar para o iPhone</b>. Aqui: Carregar do iCloud Drive › <b>stlaw-financeiro.json</b>.</li>
+      <li>Use um aparelho por vez e salve antes de trocar.</li>
     </ol>
   </div>
-  ${prev ? `<div class="card"><div class="title">Desfazer</div>
-    <p class="note">Volta para os dados que estavam aqui antes da última carga.</p>
-    <div class="stack"><button class="btn danger" data-action="undo-load">Voltar para a versão anterior</button></div></div>` : ''}`;
+  ${prev ? `<button class="choice" data-action="undo-load">
+    <div class="ic" style="background:rgba(179,52,61,.10);color:#B3343D">${icon('undo', 22)}</div>
+    <div><b>Desfazer a última carga</b><small>Volta para os dados que estavam aqui antes</small></div></button>` : ''}`;
 }
 
-// ───────────── Folhas (formulários) ─────────────
+// ───────── Folhas (formulários) ─────────
 
 function openSheet(html) {
   $('#sheet').innerHTML = '<div class="grab"></div>' + html;
@@ -529,39 +722,42 @@ function openSheet(html) {
 function closeSheet() { $('#sheet').hidden = true; $('#sheet-backdrop').hidden = true; $('#sheet').innerHTML = ''; editing = null; }
 let editing = null;
 const findEntry = id => db.data.finance_entries.find(e => e.id === Number(id));
+function sheetHead(e, eyebrow, title) {
+  return `<div class="sheet-head">${catIcon(e.category, 46)}<div><div class="eyebrow">${eyebrow}</div><h2>${esc(title)}</h2></div></div>`;
+}
 
 function receiveSheet(e) {
   editing = e;
-  openSheet(`
-    <div class="eyebrow">Registrar recebimento</div>
-    <h2>${esc(shortTitle(e))}</h2>
-    <p class="note">${money(e.amount_cents)}${e.due_date ? ' · vence ' + br(e.due_date) : ''}</p>
+  openSheet(`${sheetHead(e, 'Registrar recebimento', e.client_name || shortTitle(e))}
+    <div class="sheet-amount num">${money(e.amount_cents)}</div>
+    <p class="note" style="text-align:center;margin:0 0 6px">${e.due_date ? 'vence ' + br(e.due_date) : 'sem vencimento'}</p>
     <div class="stack">
-      <button class="btn" data-action="recv-now" data-split="socios">Recebi hoje — dividir em 3</button>
-      <button class="btn green" data-action="recv-now" data-split="escritorio">Recebi hoje — integral do escritório</button>
+      <button class="choice" data-action="recv-now" data-split="socios"><div class="ic" style="background:rgba(17,83,132,.09);color:#115384">${icon('users', 22)}</div>
+        <div><b>Recebi hoje — dividir em 3</b><small>1/3 para cada sócio, 1/3 do escritório</small></div></button>
+      <button class="choice" data-action="recv-now" data-split="escritorio"><div class="ic" style="background:rgba(46,125,91,.10);color:#2E7D5B">${icon('wallet', 22)}</div>
+        <div><b>Recebi hoje — integral do escritório</b><small>Fica todo no caixa do escritório</small></div></button>
       <button class="btn sec" data-action="recv-other">Outra data ou valor…</button>
     </div>`);
 }
 function receiveOtherSheet(e) {
   editing = e;
-  openSheet(`
-    <div class="eyebrow">Registrar recebimento</div>
-    <h2>${esc(shortTitle(e))}</h2>
+  openSheet(`${sheetHead(e, 'Registrar recebimento', e.client_name || shortTitle(e))}
+    <label class="field"><span>Valor recebido (R$)</span><input class="money num" id="f-amount" inputmode="decimal" value="${moneyEdit(e.amount_cents)}"></label>
     <label class="field"><span>Data do recebimento</span><input type="date" id="f-date" value="${today()}"></label>
-    <label class="field"><span>Valor recebido (R$)</span><input id="f-amount" inputmode="decimal" value="${moneyEdit(e.amount_cents)}"></label>
     ${splitField(e.split_mode || 'socios')}
-    <div class="stack">
-      <button class="btn" data-action="recv-confirm">Confirmar recebimento</button>
-      <button class="btn sec" data-action="close-sheet">Cancelar</button>
-    </div>`);
+    <div class="stack"><button class="btn green" data-action="recv-confirm">${icon('check', 20, 2.6)}Confirmar recebimento</button>
+      <button class="btn sec" data-action="close-sheet">Cancelar</button></div>`);
 }
+const SPLIT_HINT = {
+  socios: 'Repartido em 3 sem descontar as contas: cada sócio fica com 1/3 limpo; o terço do escritório paga as contas.',
+  escritorio: 'Fica todo no caixa do escritório; não entra na divisão entre os sócios.',
+};
 function splitField(v) {
   return `<div class="field"><span>Divisão do valor</span>
     <div class="seg" id="f-split" data-value="${v}">
       <button type="button" data-seg="socios" class="${v === 'socios' ? 'on' : ''}">Dividir em 3</button>
-      <button type="button" data-seg="escritorio" class="${v === 'escritorio' ? 'on' : ''}">Integral do escritório</button>
-    </div>
-    <div class="hint">${v === 'socios' ? 'Repartido em 3 sem descontar as contas: cada sócio fica com 1/3 limpo; o terço do escritório paga as contas.' : 'Fica todo no caixa do escritório; não entra na divisão entre os sócios.'}</div></div>`;
+      <button type="button" data-seg="escritorio" class="${v === 'escritorio' ? 'on' : ''}">Só do escritório</button>
+    </div><div class="hint">${SPLIT_HINT[v]}</div></div>`;
 }
 
 function entrySheet(e) {
@@ -569,14 +765,12 @@ function entrySheet(e) {
   const cats = e.kind === 'entrada' ? CAT_IN : CAT_OUT;
   const catOpts = [...cats, ...(cats.includes(e.category) ? [] : [e.category])].map(c => `<option ${c === e.category ? 'selected' : ''}>${esc(c)}</option>`).join('');
   const isNew = e.id == null, paid = e.status === 'pago';
-  openSheet(`
-    <div class="eyebrow">${isNew ? 'Novo lançamento' : 'Editar lançamento'}</div>
-    <h2>${isNew ? (e.kind === 'entrada' ? 'Nova entrada' : 'Nova saída') : esc(shortTitle(e))}</h2>
+  openSheet(`${sheetHead(e, isNew ? 'Novo lançamento' : 'Editar lançamento', isNew ? (e.kind === 'entrada' ? 'Nova entrada' : 'Nova saída') : shortTitle(e))}
     ${isNew ? `<div class="field"><div class="seg" id="f-kind" data-value="${e.kind}">
       <button type="button" data-seg="entrada" class="${e.kind === 'entrada' ? 'on' : ''}">Entrada</button>
       <button type="button" data-seg="saida" class="${e.kind === 'saida' ? 'on' : ''}">Saída</button></div></div>` : ''}
-    <label class="field"><span>Descrição *</span><input id="f-desc" value="${esc(e.description)}" autocomplete="off"></label>
-    <label class="field"><span>Valor (R$) *</span><input id="f-amount" inputmode="decimal" placeholder="0,00" value="${e.amount_cents ? moneyEdit(e.amount_cents) : ''}"></label>
+    <label class="field"><span>Valor (R$)</span><input class="money num" id="f-amount" inputmode="decimal" placeholder="0,00" value="${e.amount_cents ? moneyEdit(e.amount_cents) : ''}"></label>
+    <label class="field"><span>Descrição</span><input id="f-desc" value="${esc(e.description)}" autocomplete="off" placeholder="${e.kind === 'entrada' ? 'ex.: Honorários — Maria' : 'ex.: Hostgator'}"></label>
     <label class="field"><span>Categoria</span><select id="f-cat">${catOpts}</select></label>
     <label class="field"><span>${e.kind === 'entrada' ? 'Cliente' : 'Fornecedor / favorecido'}</span><input id="f-client" value="${esc(e.client_name || '')}" autocomplete="off"></label>
     <div class="field"><span>Status</span><div class="seg" id="f-status" data-value="${e.status}">
@@ -588,9 +782,9 @@ function entrySheet(e) {
     <label class="field"><span>Observações</span><textarea id="f-notes">${esc(e.notes || '')}</textarea></label>
     ${e.installment_total > 1 ? `<p class="hint">Parcela ${e.installment_number} de ${e.installment_total} — alterar este lançamento não muda as outras parcelas.</p>` : ''}
     <div class="stack">
-      <button class="btn" data-action="save-entry">Salvar</button>
-      ${!isNew && paid ? `<button class="btn sec" data-action="reopen">Desfazer ${e.kind === 'entrada' ? 'recebimento' : 'pagamento'} (volta a pendente)</button>` : ''}
-      ${!isNew ? '<button class="btn danger" data-action="delete">Excluir lançamento</button>' : ''}
+      <button class="btn" data-action="save-entry">${icon('check', 20, 2.6)}Salvar</button>
+      ${!isNew && paid ? `<button class="btn sec" data-action="reopen">${icon('undo', 18, 2.2)}Desfazer ${e.kind === 'entrada' ? 'recebimento' : 'pagamento'}</button>` : ''}
+      ${!isNew ? `<button class="btn danger" data-action="delete">${icon('trash', 18, 2.2)}Excluir lançamento</button>` : ''}
       <button class="btn sec" data-action="close-sheet">Cancelar</button>
     </div>`);
 }
@@ -611,18 +805,24 @@ function readEntryForm() {
   e.notes = $('#f-notes').value.trim() || null;
   return e;
 }
+function readPartial() {
+  const e = { ...editing };
+  if ($('#f-desc')) e.description = $('#f-desc').value;
+  const a = $('#f-amount') ? parseMoney($('#f-amount').value) : null; if (a) e.amount_cents = a;
+  if ($('#f-client')) e.client_name = $('#f-client').value || null;
+  return e;
+}
 
 function openingSheet() {
-  const m = state.month, cur = opening(m), sug = suggestedOpening(m), prev = monthLabel(addMonths(m, -1));
-  openSheet(`
-    <div class="eyebrow">Caixa do escritório</div>
-    <h2>Saldo que sobrou de ${esc(prev.toLowerCase())}</h2>
-    <p class="note">Quanto havia no caixa do escritório no fim de ${esc(prev.toLowerCase())}. Não é receita: só abre o caixa de ${esc(monthLabel(m).toLowerCase())}.</p>
-    <label class="field"><span>Valor (R$)</span><input id="f-open" inputmode="decimal" placeholder="0,00" value="${cur === null ? '' : moneyEdit(cur)}"></label>
-    ${sug !== null && cur === null ? `<div class="stack"><button class="btn sec" data-action="use-suggestion" data-v="${sug}">Usar o que o app calculou: ${money(sug)}</button></div>` : ''}
+  const m = state.month, cur = opening(m), sug = suggestedOpening(m), prev = monthLabel(addMonths(m, -1)).toLowerCase();
+  openSheet(`<div class="sheet-head"><div class="ic" style="width:46px;height:46px;border-radius:15px;background:rgba(46,125,91,.10);color:#2E7D5B">${icon('wallet', 24)}</div>
+      <div><div class="eyebrow">Caixa do escritório</div><h2>Sobrou de ${esc(prev)}</h2></div></div>
+    <p class="note">Quanto havia no caixa do escritório no fim de ${esc(prev)}. Não é receita: só abre o caixa de ${esc(monthLabel(m).toLowerCase())}.</p>
+    <label class="field"><span>Valor (R$)</span><input class="money num" id="f-open" inputmode="decimal" placeholder="0,00" value="${cur === null ? '' : moneyEdit(cur)}"></label>
+    ${sug !== null && cur === null ? `<div class="stack"><button class="btn sec" data-action="use-suggestion" data-v="${sug}">Usar o calculado: ${money(sug)}</button></div>` : ''}
     <div class="stack">
-      <button class="btn" data-action="save-opening">Salvar</button>
-      ${cur !== null ? '<button class="btn danger" data-action="remove-opening">Remover saldo lançado</button>' : ''}
+      <button class="btn green" data-action="save-opening">${icon('check', 20, 2.6)}Salvar</button>
+      ${cur !== null ? `<button class="btn danger" data-action="remove-opening">${icon('trash', 18, 2.2)}Remover saldo lançado</button>` : ''}
       <button class="btn sec" data-action="close-sheet">Cancelar</button>
     </div>`);
 }
@@ -639,13 +839,11 @@ document.addEventListener('click', ev => {
       const paid = segBtn.dataset.seg === 'pago', k = editing && editing.kind;
       $('#f-date-label').textContent = paid ? (k === 'entrada' ? 'Data do recebimento' : 'Data do pagamento') : 'Vencimento';
     }
-    if (seg.id === 'f-split') {
-      seg.nextElementSibling.textContent = segBtn.dataset.seg === 'socios'
-        ? 'Repartido em 3 sem descontar as contas: cada sócio fica com 1/3 limpo; o terço do escritório paga as contas.'
-        : 'Fica todo no caixa do escritório; não entra na divisão entre os sócios.';
-    }
+    if (seg.id === 'f-split') seg.nextElementSibling.textContent = SPLIT_HINT[segBtn.dataset.seg];
     return;
   }
+  const filt = ev.target.closest('[data-filter]');
+  if (filt) { state.caixaFilter = filt.dataset.filter; render(); return; }
   const tab = ev.target.closest('[data-tab]');
   if (tab) { state.tab = tab.dataset.tab; render(); window.scrollTo(0, 0); return; }
   const el = ev.target.closest('[data-action]'); if (!el) return;
@@ -655,12 +853,18 @@ document.addEventListener('click', ev => {
       case 'prev-month': state.month = addMonths(state.month, -1); render(); break;
       case 'next-month': state.month = addMonths(state.month, 1); render(); break;
       case 'this-month': state.month = currentMonth(); render(); break;
-      case 'new-entry': entrySheet(newEntry(state.tab === 'contas' ? 'saida' : 'entrada', state.month)); if (state.tab === 'contas') { $('#f-status [data-seg=pendente]').click(); } break;
+      case 'pick-month': state.month = el.dataset.m; render(); break;
+      case 'recv-group': state.recvGroup = el.dataset.g; render(); break;
+      case 'new-entry': {
+        const e = newEntry(state.tab === 'contas' ? 'saida' : 'entrada', state.month);
+        if (state.tab === 'contas') { e.status = 'pendente'; e.due_date = e.entry_date; e.paid_date = null; }
+        entrySheet(e); break;
+      }
       case 'edit': entrySheet(findEntry(el.dataset.id)); break;
       case 'receive': receiveSheet(findEntry(el.dataset.id)); break;
       case 'recv-now': {
         const e = markPaid(editing, today(), null, el.dataset.split);
-        closeSheet(); render(); toast(`Recebido: ${money(e.amount_cents)} — ${el.dataset.split === 'socios' ? 'dividido em 3' : 'integral do escritório'}`); break;
+        closeSheet(); render(); toast(`Recebido ${money(e.amount_cents)} — ${el.dataset.split === 'socios' ? 'dividido em 3' : 'só do escritório'}`); break;
       }
       case 'recv-other': receiveOtherSheet(editing); break;
       case 'recv-confirm': {
@@ -689,13 +893,6 @@ document.addEventListener('click', ev => {
     }
   } catch (err) { toast(err.message || String(err)); }
 });
-function readPartial() {
-  const e = { ...editing };
-  e.description = $('#f-desc') ? $('#f-desc').value : e.description;
-  const a = $('#f-amount') ? parseMoney($('#f-amount').value) : null; if (a) e.amount_cents = a;
-  e.client_name = $('#f-client') ? ($('#f-client').value || null) : e.client_name;
-  return e;
-}
 $('#sheet-backdrop').addEventListener('click', closeSheet);
 document.getElementById('file-input').addEventListener('change', ev => onFilePicked(ev.target.files[0]));
 

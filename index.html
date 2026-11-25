@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#14202D">
+<meta name="theme-color" content="#0E1824">
+<meta name="color-scheme" content="light">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -18,33 +19,24 @@
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
-<header class="top">
+<header class="hero-wrap">
+  <div class="hex-bg" aria-hidden="true"></div>
   <div class="brand">
     <img src="mark-white.png" alt="" class="mark">
-    <div>
+    <div class="brand-text">
       <div class="brand-name">SEREGATI E TEIDER</div>
       <div class="brand-sub">FINANCEIRO</div>
     </div>
-    <span id="dirty" class="dirty" hidden>não salvo no iCloud</span>
+    <button id="dirty" class="dirty" data-tab="icloud" hidden>Salvar no iCloud</button>
   </div>
-  <div id="monthbar" class="monthbar">
-    <button class="arrow" data-action="prev-month" aria-label="Mês anterior">‹</button>
-    <button class="month-label" data-action="this-month" id="month-label"></button>
-    <button class="arrow" data-action="next-month" aria-label="Próximo mês">›</button>
-  </div>
+  <div id="hero"></div>
 </header>
 
 <main id="view"></main>
 
-<button id="fab" class="fab" data-action="new-entry" aria-label="Novo lançamento">+</button>
+<button id="fab" class="fab" data-action="new-entry" aria-label="Novo lançamento"></button>
 
-<nav class="tabs">
-  <button data-tab="inicio" class="tab"><span class="ti">◫</span>Início</button>
-  <button data-tab="caixa" class="tab"><span class="ti">⇅</span>Caixa</button>
-  <button data-tab="contas" class="tab"><span class="ti">☰</span>Contas</button>
-  <button data-tab="receber" class="tab"><span class="ti">⤓</span>A receber</button>
-  <button data-tab="icloud" class="tab"><span class="ti">☁︎</span>iCloud</button>
-</nav>
+<nav class="tabs" id="tabs"></nav>
 
 <div id="sheet-backdrop" class="backdrop" hidden></div>
 <section id="sheet" class="sheet" hidden></section>

@@ -42,9 +42,7 @@ svg { display: block; }
 /* ───────── Herói (área escura do topo) ───────── */
 .hero-wrap {
   position: relative; overflow: hidden; color: #fff;
-  background:
-    radial-gradient(120% 80% at 100% 0%, rgba(29, 111, 174, .55) 0%, rgba(29, 111, 174, 0) 60%),
-    linear-gradient(180deg, var(--noite2) 0%, var(--noite) 100%);
+  background: linear-gradient(180deg, var(--noite2) 0%, var(--noite) 100%);
   padding: calc(var(--safe-top) + 14px) 20px 26px;
   border-radius: 0 0 30px 30px;
 }

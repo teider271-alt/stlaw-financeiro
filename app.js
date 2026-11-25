@@ -894,6 +894,9 @@ document.addEventListener('click', ev => {
   } catch (err) { toast(err.message || String(err)); }
 });
 $('#sheet-backdrop').addEventListener('click', closeSheet);
+// Tela estática: bloqueia o zoom de pinça (gestos do Safari) e o de toque duplo.
+['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
+document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 document.getElementById('file-input').addEventListener('change', ev => onFilePicked(ev.target.files[0]));
 
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {

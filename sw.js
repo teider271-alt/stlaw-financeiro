@@ -1,5 +1,5 @@
 /* Guarda o app no aparelho para abrir sem internet. Só arquivos do próprio app — nenhum dado do escritório. */
-const CACHE = 'stlaw-v3';
+const CACHE = 'stlaw-v4';
 const FILES = ['./', 'index.html', 'app.css', 'app.js', 'manifest.webmanifest',
   'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'mark-white.png'];
 

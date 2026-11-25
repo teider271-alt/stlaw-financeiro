@@ -27,13 +27,16 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; padding: 0; }
-html { background: var(--noite); }
+/* Fundo da página escuro: o iPhone usa essa cor atrás da barra de status (sem faixa clara borrada e com a hora em branco). */
+html { background: var(--noite); -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
   font-family: var(--sans); color: var(--tinta); font-size: 15px;
-  background: var(--gelo); min-height: 100vh;
-  -webkit-font-smoothing: antialiased; overscroll-behavior-y: none;
-  padding-bottom: calc(150px + var(--safe-bottom));
+  background: var(--noite); min-height: 100vh;
+  -webkit-font-smoothing: antialiased; overscroll-behavior: none;
+  touch-action: pan-x pan-y;            /* sem zoom de pinça nem de toque duplo */
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
 }
+input, textarea, select { -webkit-user-select: text; user-select: text; }
 button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
 input, select, textarea { font: inherit; color: inherit; }
 svg { display: block; }
@@ -41,7 +44,7 @@ svg { display: block; }
 
 /* ───────── Herói (área escura do topo) ───────── */
 .hero-wrap {
-  position: relative; overflow: hidden; color: #fff;
+  position: relative; z-index: 1; overflow: hidden; color: #fff;
   background: linear-gradient(180deg, var(--noite2) 0%, var(--noite) 100%);
   padding: calc(var(--safe-top) + 14px) 20px 26px;
   border-radius: 0 0 30px 30px;
@@ -102,7 +105,11 @@ svg { display: block; }
 .chart-legend i { width: 8px; height: 8px; border-radius: 3px; display: inline-block; }
 
 /* ───────── Conteúdo ───────── */
-main { padding: 18px 16px 24px; display: flex; flex-direction: column; gap: 16px; margin-top: -2px; }
+main {
+  position: relative; z-index: 0; background: var(--gelo);
+  margin-top: -32px; padding: 50px 16px calc(150px + var(--safe-bottom));
+  min-height: calc(100vh - 200px); display: flex; flex-direction: column; gap: 16px;
+}
 .card { background: var(--card); border-radius: 22px; padding: 18px; box-shadow: var(--sombra); }
 .card.flush { padding: 0; overflow: hidden; }
 .card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
